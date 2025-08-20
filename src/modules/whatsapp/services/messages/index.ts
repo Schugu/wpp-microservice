@@ -1,3 +1,5 @@
+import { ServiceError } from "@/utils/logs/serviceError";
+
 export const send = async function (this: any, number: string, recipient: string, message: string) {
   const client = this.clients.get(number)
 
@@ -9,8 +11,11 @@ export const send = async function (this: any, number: string, recipient: string
     };
 
     const chatId = `${recipient}@c.us`;
-    await client.sendMessage(chatId, message);
-  } catch (error: any) {
-    console.error('Error al enviar mensaje:', error);
+
+    const result = await client.sendMessage(chatId, message);
+
+    return result || null;
+  } catch (error) {
+    throw new ServiceError("WHATSAPP_MESSAGE_SERVICE", "Error al enviar mensaje", error);
   }
 };
