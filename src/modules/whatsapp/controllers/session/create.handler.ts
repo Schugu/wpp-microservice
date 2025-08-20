@@ -7,16 +7,31 @@ export const controllerName = "CREATE_" + "SESSION" + "_DATA_CONTROLLER";
 export const create = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { number } = req.params;
-    if (!number) throw errors.whatsapp.session.unexpected;
 
     const wppModel = whatsappService.getWppModel();
-    await wppModel.initClient(number);
-    const result = wppModel.getQRCode(number);
-    if (!result) throw errors.whatsapp.session.creationFailed;
+    if (!wppModel) throw errors.whatsapp.service.notAvailable();
 
-    res.status(200).json({
-      message: "Sesión creado exitosamente.",
-      qr: result
-    });
+    const existingStatus = await wppModel.checkStatus(number);
+
+    if (existingStatus?.status === 'CONNECTED' || existingStatus?.authenticated) {
+      res.status(409).json({
+        success: false,
+        message: "Ya existe una sesión activa para este número.",
+        data: {
+          number,
+          status: existingStatus.status,
+          authenticated: existingStatus.authenticated
+        }
+      });
+    } else {
+      await wppModel.initClient(number);
+      const result = wppModel.getQRCode(number);
+      if (!result) throw errors.whatsapp.session.creationFailed;
+
+      res.status(200).json({
+        message: "Sesión creado exitosamente.",
+        qr: result
+      });
+    };
   } catch (error) { next(error) };
 };
