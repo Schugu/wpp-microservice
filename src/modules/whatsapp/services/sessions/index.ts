@@ -56,9 +56,9 @@ export const initClient = async function (this: any, number: string) {
     this.qrCodes.delete(number);
   });
 
-  client.on('message', (message) => {
-    console.log(`Nuevo mensaje de ${message.from}: ${message.body}`);
-  });
+  // client.on('message', (message) => {
+  //   console.log(`Nuevo mensaje de ${message.from}: ${message.body}`);
+  // });
 
   client.on('ready', () => {
     console.log(`Cliente de WhatsApp listo para el número: ${number}.`);
@@ -70,10 +70,12 @@ export const initClient = async function (this: any, number: string) {
     this.qrCodes.delete(number);
   });
 
+  // Solución: Usar arrow function para mantener el contexto de 'this'
   client.on('disconnected', async () => {
     console.log(`Cliente de WhatsApp desconectado para el número: ${number}.`);
-
-    await this.cleanupClient(number);
+    
+    // Llamar directamente a cleanupClient como función exportada
+    await cleanupClient.call(this, number);
   });
 
   try {
@@ -110,7 +112,6 @@ export const cleanupClient = async function (this: any, number: string) {
   }
 };
 
-
 export const logout = async function (this: any, number: string) {
   try {
     const client = this.clients.get(number);
@@ -118,7 +119,7 @@ export const logout = async function (this: any, number: string) {
     if (!client) return false;
 
     await client.logout();
-    await this.cleanupClient(number);
+    await cleanupClient.call(this, number);
     console.log(`Sesión de WhatsApp eliminada para el número: ${number}.`);
     return true;
   } catch (error) {
@@ -141,7 +142,7 @@ export const restoreSessions = async function (this: any) {
     for (const session of sessions) {
       const { clientId } = session;
       try {
-        await this.initClient(clientId);
+        await initClient.call(this, clientId);
         results.push({ clientId, success: true });
         console.log(`Sesión restaurada exitosamente para: ${clientId}`);
       } catch (error) {
